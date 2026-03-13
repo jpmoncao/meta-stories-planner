@@ -57,6 +57,23 @@ def criar_container(ig_account_id: str, image_url: str, access_token: str) -> st
     return None
 
 
+def aguardar_container_pronto(container_id: str, access_token: str, max_tentativas: int = 30) -> bool:
+    """Aguarda o container ficar FINISHED. Retorna True se pronto, False se erro/expirou."""
+    for _ in range(max_tentativas):
+        url = f"{BASE_URL}/{container_id}"
+        resp = requests.get(url, params={"fields": "status_code", "access_token": access_token}, timeout=30)
+        data = resp.json()
+        status = data.get("status_code", "")
+        if status == "FINISHED":
+            return True
+        if status in ("ERROR", "EXPIRED"):
+            print(f"  ❌ Container {status}: {data.get('status', data)}")
+            return False
+        time.sleep(2)
+    print("  ❌ Timeout aguardando container processar")
+    return False
+
+
 def publicar_story(ig_account_id: str, creation_id: str, access_token: str) -> bool:
     """Publica o container como story. Retorna True se sucesso."""
     url = f"{BASE_URL}/{ig_account_id}/media_publish"
@@ -133,6 +150,9 @@ def postar_story(
 
     creation_id = criar_container(ig_account_id, image_url, access_token)
     if not creation_id:
+        return False
+
+    if not aguardar_container_pronto(creation_id, access_token):
         return False
 
     return publicar_story(ig_account_id, creation_id, access_token)
