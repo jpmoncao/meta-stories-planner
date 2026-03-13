@@ -31,7 +31,11 @@ jobs:
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
-          echo "$FIREBASE_SERVICE_ACCOUNT" > service-account.json
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "Erro: secret FIREBASE_SERVICE_ACCOUNT não está configurado"
+            exit 1
+          fi
+          echo "$FIREBASE_SERVICE_ACCOUNT" | base64 -d > service-account.json
 
       - name: Publicar Stories
         env:
