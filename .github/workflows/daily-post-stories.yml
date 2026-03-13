@@ -1,0 +1,42 @@
+# Publica Stories no Instagram diariamente às 7:30 (horário de Brasília)
+# GitHub Actions usa cron em UTC: 7:30 BRT = 10:30 UTC
+name: Postar Stories Diário
+
+on:
+  schedule:
+    # 7:30 da manhã, horário de Brasília (UTC-3)
+    - cron: '30 10 * * *'
+  workflow_dispatch:  # Permite rodar manualmente pelo GitHub
+
+jobs:
+  post-stories:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: script
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+
+      - name: Criar service account JSON
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT" > service-account.json
+
+      - name: Publicar Stories
+        env:
+          IG_BUSINESS_ACCOUNT_ID: ${{ secrets.IG_BUSINESS_ACCOUNT_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          GOOGLE_APPLICATION_CREDENTIALS: ./service-account.json
+          FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+        run: python postar_stories.py --from-firebase
